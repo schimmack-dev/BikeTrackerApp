@@ -1,0 +1,42 @@
+<MainLayout>:
+    orientation: "vertical"
+    padding: dp(20)
+    spacing: dp(15)
+
+    Label:
+        id: status_label
+        text: "GPS-Daten: Nicht gestartet"
+        font_size: '18sp'
+        size_hint_y: None
+        height: self.texture_size[1]
+
+    Label:
+        id: coords_label
+        text: "Latitude: - , Longitude: -"
+        font_size: '16sp'
+        size_hint_y: None
+        height: self.texture_size[1]
+
+    Label:
+        id: distance_label
+        text: "Distanz: 0.0 km"
+        font_size: '16sp'
+        size_hint_y: None
+        height: self.texture_size[1]
+
+    BoxLayout:
+        size_hint_y: None
+        height: dp(50)
+        spacing: dp(10)
+
+        Button:
+            text: "Start"
+            on_press: root.start_gps()
+
+        Button:
+            text: "Stop"
+            on_press: root.stop_gps()
+
+        Button:
+            text: "Reset"
+            on_press: root.reset_tracking()

@@ -1,69 +1,80 @@
+import sys
 from kivy.app import App
 from kivy.uix.boxlayout import BoxLayout
-from kivy.uix.label import Label
-from kivy.uix.button import Button
 from kivy.clock import Clock
 
-class BikeTrackerApp(App):
-    def build(self):
-        self.tracking = False
-        self.speed = 0
-        self.distance = 0
+try:
+    from plyer import gps
+except ImportError:
+    gps = None
 
-        layout = BoxLayout(orientation='vertical', padding=20, spacing=20)
+class MainLayout(BoxLayout):
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+        self.gps_started = False
+        self.distance = 0.0
+        self.last_lat = None
+        self.last_lon = None
 
-        self.status_label = Label(text='Willkommen zum Bike Tracker!', font_size=24)
-        self.speed_label = Label(text='Geschwindigkeit: 0 km/h', font_size=24)
-        self.distance_label = Label(text='Distanz: 0 km', font_size=24)
-
-        self.start_button = Button(text='Start', font_size=32)
-        self.start_button.bind(on_press=self.start_tracking)
-
-        self.stop_button = Button(text='Stop', font_size=32)
-        self.stop_button.bind(on_press=self.stop_tracking)
-
-        self.reset_button = Button(text='Reset', font_size=32)
-        self.reset_button.bind(on_press=self.reset_tracking)
-
-        layout.add_widget(self.status_label)
-        layout.add_widget(self.speed_label)
-        layout.add_widget(self.distance_label)
-        layout.add_widget(self.start_button)
-        layout.add_widget(self.stop_button)
-        layout.add_widget(self.reset_button)
-
-        return layout
-
-    def start_tracking(self, instance):
-        if not self.tracking:
-            self.tracking = True
-            self.status_label.text = 'Tracking läuft...'
-            self.speed = 15
-            Clock.schedule_interval(self.update_tracking, 1)
-
-    def stop_tracking(self, instance):
-        if self.tracking:
-            self.tracking = False
-            self.status_label.text = 'Tracking gestoppt.'
-            self.speed = 0
-            self.speed_label.text = 'Geschwindigkeit: 0 km/h'
-
-    def reset_tracking(self, instance):
-        self.tracking = False
-        self.speed = 0
-        self.distance = 0
-        self.status_label.text = 'Tracking zurückgesetzt.'
-        self.speed_label.text = 'Geschwindigkeit: 0 km/h'
-        self.distance_label.text = 'Distanz: 0 km'
-        Clock.unschedule(self.update_tracking)
-
-    def update_tracking(self, dt):
-        if self.tracking:
-            self.distance += 0.004
-            self.speed_label.text = f'Geschwindigkeit: {self.speed} km/h'
-            self.distance_label.text = f'Distanz: {round(self.distance, 2)} km'
+    def start_gps(self):
+        if sys.platform == "darwin":
+            self.ids.status_label.text = "macOS erkannt – Mock GPS aktiviert"
+            Clock.schedule_interval(self.mock_gps_update, 5)
         else:
-            return False
+            if gps:
+                try:
+                    gps.configure(on_location=self.on_location)
+                    gps.start()
+                    self.gps_started = True
+                    self.ids.status_label.text = "GPS gestartet"
+                except NotImplementedError:
+                    self.ids.status_label.text = "GPS nicht verfügbar"
+                except Exception as e:
+                    self.ids.status_label.text = f"Fehler beim Starten von GPS: {e}"
+            else:
+                self.ids.status_label.text = "Plyer GPS-Modul nicht gefunden"
+
+    def stop_gps(self):
+        if self.gps_started and gps:
+            try:
+                gps.stop()
+                self.gps_started = False
+                self.ids.status_label.text = "GPS gestoppt"
+            except Exception as e:
+                self.ids.status_label.text = f"Fehler beim Stoppen von GPS: {e}"
+
+    def reset_tracking(self):
+        self.distance = 0.0
+        self.last_lat = None
+        self.last_lon = None
+        self.ids.distance_label.text = "Distanz: 0.0 km"
+        self.ids.coords_label.text = "Latitude: - , Longitude: -"
+        self.ids.status_label.text = "Tracking zurückgesetzt"
+
+    def on_location(self, **kwargs):
+        lat = float(kwargs.get("lat", 0))
+        lon = float(kwargs.get("lon", 0))
+        self.ids.coords_label.text = f"Latitude: {lat:.5f}, Longitude: {lon:.5f}"
+
+        if self.last_lat is not None and self.last_lon is not None:
+            # Berechne Distanz zum letzten Punkt (vereinfacht, nur zur Demo)
+            dist = ((lat - self.last_lat)**2 + (lon - self.last_lon)**2)**0.5 * 111  # grob in km
+            self.distance += dist
+            self.ids.distance_label.text = f"Distanz: {self.distance:.2f} km"
+
+        self.last_lat = lat
+        self.last_lon = lon
+
+    def mock_gps_update(self, dt):
+        # Simuliere GPS-Bewegung
+        import random
+        lat = 52.5200 + random.uniform(-0.0005, 0.0005)
+        lon = 13.4050 + random.uniform(-0.0005, 0.0005)
+        self.on_location(lat=lat, lon=lon)
+
+class BikeApp(App):
+    def build(self):
+        return MainLayout()
 
 if __name__ == '__main__':
-    BikeTrackerApp().run()
+    BikeApp().run()

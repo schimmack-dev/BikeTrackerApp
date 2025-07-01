@@ -1,4 +1,6 @@
 import sys
+import json
+import os
 from kivy.app import App
 from kivy.uix.boxlayout import BoxLayout
 from kivy.clock import Clock
@@ -15,6 +17,24 @@ class MainLayout(BoxLayout):
         self.distance = 0.0
         self.last_lat = None
         self.last_lon = None
+        self.track_points = []  # Liste für GPS-Datenpunkte
+
+        self.load_track()
+
+    def save_track(self):
+        with open("track.json", "w") as f:
+            json.dump(self.track_points, f)
+
+    def load_track(self):
+        if os.path.exists("track.json"):
+            with open("track.json", "r") as f:
+                self.track_points = json.load(f)
+            # Letzten Punkt anzeigen, falls vorhanden
+            if self.track_points:
+                last_point = self.track_points[-1]
+                lat, lon = last_point["lat"], last_point["lon"]
+                self.ids.coords_label.text = f"Latitude: {lat:.5f}, Longitude: {lon:.5f}"
+                # Optional: Distance aktualisieren, falls gewünscht
 
     def start_gps(self):
         if sys.platform == "darwin":
@@ -47,9 +67,13 @@ class MainLayout(BoxLayout):
         self.distance = 0.0
         self.last_lat = None
         self.last_lon = None
+        self.track_points = []
         self.ids.distance_label.text = "Distanz: 0.0 km"
         self.ids.coords_label.text = "Latitude: - , Longitude: -"
         self.ids.status_label.text = "Tracking zurückgesetzt"
+        # Track-Datei löschen
+        if os.path.exists("track.json"):
+            os.remove("track.json")
 
     def on_location(self, **kwargs):
         lat = float(kwargs.get("lat", 0))
@@ -57,16 +81,18 @@ class MainLayout(BoxLayout):
         self.ids.coords_label.text = f"Latitude: {lat:.5f}, Longitude: {lon:.5f}"
 
         if self.last_lat is not None and self.last_lon is not None:
-            # Berechne Distanz zum letzten Punkt (vereinfacht, nur zur Demo)
-            dist = ((lat - self.last_lat)**2 + (lon - self.last_lon)**2)**0.5 * 111  # grob in km
+            dist = ((lat - self.last_lat)**2 + (lon - self.last_lon)**2)**0.5 * 111  # grobe km-Berechnung
             self.distance += dist
             self.ids.distance_label.text = f"Distanz: {self.distance:.2f} km"
 
         self.last_lat = lat
         self.last_lon = lon
 
+        # GPS-Punkt speichern
+        self.track_points.append({"lat": lat, "lon": lon})
+        self.save_track()
+
     def mock_gps_update(self, dt):
-        # Simuliere GPS-Bewegung
         import random
         lat = 52.5200 + random.uniform(-0.0005, 0.0005)
         lon = 13.4050 + random.uniform(-0.0005, 0.0005)

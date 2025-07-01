@@ -1,92 +1,52 @@
+#:import MapView kivy_garden.mapview.MapView
+#:import MapMarkerPopup kivy_garden.mapview.MapMarkerPopup
 #:import dp kivy.metrics.dp
-#:import Color kivy.graphics.Color
-#:import RoundedRectangle kivy.graphics.RoundedRectangle
 
 <MainLayout>:
     orientation: "vertical"
     padding: dp(20)
-    spacing: dp(20)
-
-    canvas.before:
-        Color:
-            rgba: 0.15, 0.18, 0.22, 1
-        Rectangle:
-            pos: self.pos
-            size: self.size
+    spacing: dp(15)
 
     Label:
         id: status_label
         text: "GPS-Daten: Nicht gestartet"
-        font_size: '22sp'
-        color: 1, 1, 1, 1
+        font_size: '18sp'
         size_hint_y: None
         height: self.texture_size[1]
 
     Label:
         id: coords_label
         text: "Latitude: - , Longitude: -"
-        font_size: '18sp'
-        color: 0.8, 0.8, 0.9, 1
+        font_size: '16sp'
         size_hint_y: None
         height: self.texture_size[1]
 
     Label:
         id: distance_label
         text: "Distanz: 0.0 km"
-        font_size: '18sp'
-        color: 0.8, 0.8, 0.9, 1
+        font_size: '16sp'
         size_hint_y: None
         height: self.texture_size[1]
 
     BoxLayout:
         size_hint_y: None
-        height: dp(60)
-        spacing: dp(15)
+        height: dp(50)
+        spacing: dp(10)
 
         Button:
-            text: "▶ Start"
-            background_normal: ''
-            background_color: 0.2, 0.6, 0.86, 1
-            color: 1, 1, 1, 1
-            font_size: '20sp'
-            canvas.before:
-                Color:
-                    rgba: self.background_color
-                RoundedRectangle:
-                    pos: self.pos
-                    size: self.size
-                    radius: [15]
-
+            text: "Start"
             on_press: root.start_gps()
 
         Button:
-            text: "■ Stop"
-            background_normal: ''
-            background_color: 0.9, 0.3, 0.3, 1
-            color: 1, 1, 1, 1
-            font_size: '20sp'
-            canvas.before:
-                Color:
-                    rgba: self.background_color
-                RoundedRectangle:
-                    pos: self.pos
-                    size: self.size
-                    radius: [15]
-
+            text: "Stop"
             on_press: root.stop_gps()
 
         Button:
-            text: "↻ Reset"
-            background_normal: ''
-            background_color: 0.5, 0.5, 0.5, 1
-            color: 1, 1, 1, 1
-            font_size: '20sp'
-            canvas.before:
-                Color:
-                    rgba: self.background_color
-                RoundedRectangle:
-                    pos: self.pos
-                    size: self.size
-                    radius: [15]
-
+            text: "Reset"
             on_press: root.reset_tracking()
+
+    MapView:
+        id: mapview
+        lat: 52.5200
+        lon: 13.4050
+        zoom: 12

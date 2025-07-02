@@ -1,52 +1,84 @@
-#:import MapView kivy_garden.mapview.MapView
-#:import MapMarkerPopup kivy_garden.mapview.MapMarkerPopup
-#:import dp kivy.metrics.dp
-
 <MainLayout>:
     orientation: "vertical"
     padding: dp(20)
     spacing: dp(15)
-
-    Label:
-        id: status_label
-        text: "GPS-Daten: Nicht gestartet"
-        font_size: '18sp'
-        size_hint_y: None
-        height: self.texture_size[1]
-
-    Label:
-        id: coords_label
-        text: "Latitude: - , Longitude: -"
-        font_size: '16sp'
-        size_hint_y: None
-        height: self.texture_size[1]
-
-    Label:
-        id: distance_label
-        text: "Distanz: 0.0 km"
-        font_size: '16sp'
-        size_hint_y: None
-        height: self.texture_size[1]
+    canvas.before:
+        Color:
+            rgba: 0.95, 0.95, 0.95, 1
+        Rectangle:
+            pos: self.pos
+            size: self.size
 
     BoxLayout:
-        size_hint_y: None
-        height: dp(50)
+        orientation: "vertical"
+        padding: dp(15)
         spacing: dp(10)
+        size_hint_y: None
+        height: dp(160)
+        canvas.before:
+            Color:
+                rgba: 1, 1, 1, 1
+            RoundedRectangle:
+                pos: self.pos
+                size: self.size
+                radius: [10]
 
-        Button:
-            text: "Start"
-            on_press: root.start_gps()
+        Label:
+            id: status_label
+            text: "GPS-Daten: Nicht gestartet"
+            font_size: '18sp'
+            color: 0, 0, 0, 1
 
-        Button:
-            text: "Stop"
-            on_press: root.stop_gps()
+        Label:
+            id: coords_label
+            text: "Latitude: - , Longitude: -"
+            font_size: '16sp'
+            color: 0.3, 0.3, 0.3, 1
 
-        Button:
-            text: "Reset"
-            on_press: root.reset_tracking()
+        Label:
+            id: distance_label
+            text: "Distanz: 0.0 km"
+            font_size: '16sp'
+            color: 0.3, 0.3, 0.3, 1
+
+        Label:
+            id: speed_label
+            text: "Geschwindigkeit: 0.0 km/h"
+            font_size: '16sp'
+            color: 0.3, 0.3, 0.3, 1
 
     MapView:
         id: mapview
         lat: 52.5200
         lon: 13.4050
-        zoom: 12
+        zoom: 15
+
+    BoxLayout:
+        orientation: "vertical"
+        size_hint_y: None
+        height: dp(160)
+        spacing: dp(10)
+
+        Button:
+            text: "▶ Start"
+            background_color: 0, 0.8, 0, 1
+            font_size: '18sp'
+            on_press: root.start_gps()
+
+        Button:
+            text: "■ Stop"
+            background_color: 0.8, 0, 0, 1
+            font_size: '18sp'
+            on_press: root.stop_gps()
+
+        Button:
+            text: "↻ Zurücksetzen"
+            background_color: 0.7, 0.7, 0.7, 1
+            font_size: '18sp'
+            on_press: root.reset_tracking()
+
+        Button:
+            text: "💾 Speichern"
+            background_color: 0.2, 0.6, 1, 1
+            font_size: '18sp'
+            on_press: root.save_track()

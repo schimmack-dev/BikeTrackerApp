@@ -9,7 +9,6 @@ try:
 except ImportError:
     gps = None
 
-
 class MainLayout(BoxLayout):
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
@@ -17,11 +16,14 @@ class MainLayout(BoxLayout):
         self.distance = 0.0
         self.last_lat = None
         self.last_lon = None
+        self.mock_event = None  # Referenz zum mock-GPS Event
 
     def start_gps(self):
         if sys.platform == "darwin":
             self.ids.status_label.text = "macOS erkannt – Mock GPS aktiviert"
-            Clock.schedule_interval(self.mock_gps_update, 5)
+            if not self.mock_event:
+                self.mock_event = Clock.schedule_interval(self.mock_gps_update, 5)
+                print("Mock GPS gestartet")
         else:
             if gps:
                 try:
@@ -37,13 +39,21 @@ class MainLayout(BoxLayout):
                 self.ids.status_label.text = "Plyer GPS-Modul nicht gefunden"
 
     def stop_gps(self):
-        if self.gps_started and gps:
-            try:
-                gps.stop()
-                self.gps_started = False
-                self.ids.status_label.text = "GPS gestoppt"
-            except Exception as e:
-                self.ids.status_label.text = f"Fehler beim Stoppen von GPS: {e}"
+        if sys.platform == "darwin":
+            if self.mock_event:
+                self.mock_event.cancel()
+                self.mock_event = None
+                self.ids.status_label.text = "Mock GPS gestoppt"
+                print("Mock GPS gestoppt")
+        else:
+            if self.gps_started and gps:
+                try:
+                    gps.stop()
+                    self.gps_started = False
+                    self.ids.status_label.text = "GPS gestoppt"
+                    print("GPS gestoppt")
+                except Exception as e:
+                    self.ids.status_label.text = f"Fehler beim Stoppen von GPS: {e}"
 
     def reset_tracking(self):
         self.distance = 0.0
@@ -52,12 +62,14 @@ class MainLayout(BoxLayout):
         self.ids.distance_label.text = "Distanz: 0.0 km"
         self.ids.coords_label.text = "Latitude: - , Longitude: -"
         self.ids.status_label.text = "Tracking zurückgesetzt"
-        # Karte auf Startposition zurücksetzen
         mapview = self.ids.mapview
         mapview.center_on(52.5200, 13.4050)
         mapview.zoom = 12
-        # Alle Marker entfernen
-        mapview.clear_widgets()
+        # Marker einzeln entfernen, nicht clear_widgets()
+        for child in list(mapview.children):
+            if isinstance(child, MapMarkerPopup):
+                mapview.remove_widget(child)
+        print("Tracking und Marker zurückgesetzt")
 
     def on_location(self, **kwargs):
         lat = float(kwargs.get("lat", 0))
@@ -65,15 +77,13 @@ class MainLayout(BoxLayout):
         self.ids.coords_label.text = f"Latitude: {lat:.5f}, Longitude: {lon:.5f}"
 
         if self.last_lat is not None and self.last_lon is not None:
-            # Berechne Distanz zum letzten Punkt (vereinfacht, nur Demo)
-            dist = ((lat - self.last_lat) ** 2 + (lon - self.last_lon) ** 2) ** 0.5 * 111  # km approx.
+            dist = ((lat - self.last_lat) ** 2 + (lon - self.last_lon) ** 2) ** 0.5 * 111
             self.distance += dist
             self.ids.distance_label.text = f"Distanz: {self.distance:.2f} km"
 
         self.last_lat = lat
         self.last_lon = lon
 
-        # Marker auf Map setzen
         mapview = self.ids.mapview
         marker = MapMarkerPopup(lat=lat, lon=lon)
         mapview.add_widget(marker)

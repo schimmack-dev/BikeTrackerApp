@@ -11,63 +11,64 @@
         size_hint_y: 0.7
 
     BoxLayout:
-        size_hint_y: 0.3
-        orientation: "vertical"
+        size_hint_y: 0.2
         spacing: 10
 
-        BoxLayout:
-            spacing: 10
+        Button:
+            text: "Start"
+            on_release: root.start_tracking()
+            id: start_btn
+            disabled: root.gps_started or root.mock_active
 
-            Button:
-                text: "▶ Start"
-                on_release: root.start_tracking()
+        Button:
+            text: root.ids.pause_resume_btn.text if root.ids.pause_resume_btn else "Pause"
+            on_release: root.pause_or_resume_tracking()
+            id: pause_resume_btn
+            disabled: not (root.gps_started or root.mock_active) and len(root.track_points) == 0
 
-            Button:
-                id: pause_resume_btn
-                text: "⏸ Pause"
-                disabled: True
-                on_release: root.pause_or_resume_tracking()
+        Button:
+            text: "Stop"
+            on_release: root.stop_tracking()
+            id: stop_btn
+            disabled: not (root.gps_started or root.mock_active)
 
-            Button:
-                id: stop_btn
-                text: "■ Stop"
-                disabled: True
-                on_release: root.stop_tracking()
+        Button:
+            text: "Speichern"
+            on_release: root.save_track()
+            id: save_btn
+            disabled: len(root.track_points) == 0
 
-            Button:
-                id: reset_btn
-                text: "↺ Reset"
-                disabled: True
-                on_release: root.reset_tracking()
+        Button:
+            text: "Laden"
+            on_release: root.open_filechooser()
+            id: load_btn
 
-        BoxLayout:
-            spacing: 10
+        Button:
+            text: "Reset"
+            on_release: root.reset_tracking()
+            id: reset_btn
+            disabled: len(root.track_points) == 0
 
-            Button:
-                text: "💾 Speichern"
-                on_release: root.save_track()
+    BoxLayout:
+        size_hint_y: 0.1
+        spacing: 10
 
-            Button:
-                text: "📂 Laden"
-                on_release: root.open_filechooser()
+        Label:
+            id: coords_label
+            text: "Latitude: - , Longitude: -"
+            size_hint_x: 0.5
 
-        BoxLayout:
-            spacing: 10
+        Label:
+            id: distance_label
+            text: "Distanz: 0.0 km"
+            size_hint_x: 0.3
 
-            Label:
-                id: status_label
-                text: root.status_text
-                size_hint_x: 1
-                color: 1, 0, 0, 1
+        Label:
+            id: speed_label
+            text: "Geschwindigkeit: 0.0 km/h"
+            size_hint_x: 0.3
 
-            Label:
-                id: distance_label
-                text: "Distanz: 0.0 km"
-
-            Label:
-                id: speed_label
-                text: "Geschwindigkeit: 0.0 km/h"
-
-            Label:
-                id: coords_label
-                text: "Latitude: - , Longitude: -"
+    Label:
+        id: status_label
+        text: root.status_text
+        size_hint_y: 0.05

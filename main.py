@@ -7,10 +7,11 @@ from kivy.uix.boxlayout import BoxLayout
 from kivy.clock import Clock
 from kivy_garden.mapview import MapView, MapMarkerPopup
 from kivy.graphics import Color, Line
-from kivy.properties import ListProperty, NumericProperty, StringProperty, BooleanProperty
+from kivy.properties import ListProperty, NumericProperty, StringProperty, BooleanProperty, ObjectProperty
 from kivy.uix.popup import Popup
 from kivy.uix.filechooser import FileChooserListView
 from kivy.uix.button import Button
+from kivy.uix.label import Label
 
 try:
     from plyer import gps
@@ -23,23 +24,23 @@ class MainLayout(BoxLayout):
     distance = NumericProperty(0.0)
     speed = NumericProperty(0.0)  # km/h
     status_text = StringProperty("")
-
-    gps_started = BooleanProperty(False)
-    mock_active = BooleanProperty(False)  # True wenn Mock GPS aktiv ist
+    ride_duration = NumericProperty(0)  # Sekunden
+    gps_started = BooleanProperty(False)  # WICHTIG: als Property!
+    mock_event = ObjectProperty(None, allownone=True)
+    timer_event = ObjectProperty(None, allownone=True)
 
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
         self.last_lat = None
         self.last_lon = None
         self.last_time = None
-        self.mock_event = None  # Clock event oder None
         self.track_line = None
         self.start_marker = None
         self.end_marker = None
-        self.track_saved = True  # Track ist am Anfang "gespeichert"
+        self.track_saved = True
 
     def start_tracking(self):
-        if self.gps_started or self.mock_active:
+        if self.gps_started or self.mock_event:
             self.status_text = "Tracking läuft bereits"
             return
         self.reset_tracking()
@@ -49,13 +50,13 @@ class MainLayout(BoxLayout):
         self.ids.pause_resume_btn.disabled = False
         self.ids.stop_btn.disabled = False
         self.ids.reset_btn.disabled = False
+        self.start_timer()
 
     def _start_gps(self):
         if sys.platform == "darwin":
             self.status_text = "macOS erkannt – Mock GPS aktiviert"
             if not self.mock_event:
                 self.mock_event = Clock.schedule_interval(self.mock_gps_update, 5)
-                self.mock_active = True
                 print("Mock GPS gestartet")
             self.gps_started = True
         else:
@@ -64,7 +65,6 @@ class MainLayout(BoxLayout):
                     gps.configure(on_location=self.on_location)
                     gps.start()
                     self.gps_started = True
-                    self.mock_active = False
                     self.status_text = "GPS gestartet"
                 except NotImplementedError:
                     self.status_text = "GPS nicht verfügbar"
@@ -72,22 +72,22 @@ class MainLayout(BoxLayout):
                     self.status_text = f"Fehler beim Starten von GPS: {e}"
             else:
                 self.status_text = "Plyer GPS-Modul nicht gefunden"
-                self.mock_active = False
 
     def pause_or_resume_tracking(self):
-        if self.gps_started or self.mock_active:
+        if self.gps_started or self.mock_event:
             self._pause_gps()
             self.ids.pause_resume_btn.text = "▶ Fortsetzen"
+            self.stop_timer()
         else:
             self._start_gps()
             self.ids.pause_resume_btn.text = "⏸ Pause"
+            self.start_timer()
 
     def _pause_gps(self):
         if sys.platform == "darwin":
             if self.mock_event:
                 self.mock_event.cancel()
                 self.mock_event = None
-                self.mock_active = False
                 self.status_text = "Mock GPS pausiert"
                 print("Mock GPS pausiert")
             self.gps_started = False
@@ -103,6 +103,7 @@ class MainLayout(BoxLayout):
 
     def stop_tracking(self):
         self._pause_gps()
+        self.stop_timer()
         if not self.track_saved and self.track_points:
             self.status_text = "Achtung: Track wurde noch nicht gespeichert!"
         else:
@@ -116,6 +117,7 @@ class MainLayout(BoxLayout):
     def reset_tracking(self):
         self.distance = 0.0
         self.speed = 0.0
+        self.ride_duration = 0
         self.last_lat = None
         self.last_lon = None
         self.last_time = None
@@ -126,6 +128,7 @@ class MainLayout(BoxLayout):
         self.ids.distance_label.text = "Distanz: 0.0 km"
         self.ids.coords_label.text = "Latitude: - , Longitude: -"
         self.ids.speed_label.text = "Geschwindigkeit: 0.0 km/h"
+        self.ids.duration_label.text = "Fahrtdauer: 00:00:00"
 
         mapview = self.ids.mapview
         mapview.center_on(52.5200, 13.4050)
@@ -141,6 +144,10 @@ class MainLayout(BoxLayout):
         if self.track_line:
             mapview.canvas.remove(self.track_line)
             self.track_line = None
+
+        if self.timer_event:
+            self.timer_event.cancel()
+            self.timer_event = None
 
         print("Tracking und Marker zurückgesetzt")
 
@@ -206,17 +213,16 @@ class MainLayout(BoxLayout):
             self.status_text = "Kein Track zum Speichern vorhanden."
             return
 
-        # Speicherordner "tracks" anlegen, falls nicht existiert
-        folder = os.path.join(os.getcwd(), "tracks")
-        os.makedirs(folder, exist_ok=True)
-
         data = {
             "date": datetime.now().isoformat(),
             "track_points": self.track_points,
             "distance_km": self.distance,
+            "ride_duration_sec": self.ride_duration,
         }
+        tracks_dir = os.path.join(os.getcwd(), "tracks")
+        os.makedirs(tracks_dir, exist_ok=True)
         filename = f"track_{datetime.now().strftime('%Y%m%d_%H%M%S')}.json"
-        filepath = os.path.join(folder, filename)
+        filepath = os.path.join(tracks_dir, filename)
         try:
             with open(filepath, 'w') as f:
                 json.dump(data, f, indent=2)
@@ -229,12 +235,7 @@ class MainLayout(BoxLayout):
 
     def open_filechooser(self):
         content = BoxLayout(orientation='vertical', spacing=10, padding=10)
-        self.filechooser = FileChooserListView(filters=['*.json'])
-        # Fester Ordner "tracks"
-        folder = os.path.join(os.getcwd(), "tracks")
-        os.makedirs(folder, exist_ok=True)
-        self.filechooser.path = folder
-
+        self.filechooser = FileChooserListView(path=os.path.join(os.getcwd(), "tracks"), filters=['*.json'])
         content.add_widget(self.filechooser)
 
         btn_layout = BoxLayout(size_hint_y=None, height='40dp', spacing=10)
@@ -267,7 +268,6 @@ class MainLayout(BoxLayout):
 
         if not os.path.isfile(filepath):
             self.status_text = "Datei existiert nicht."
-            self.show_popup("Fehler", "Datei existiert nicht.")
             return
 
         try:
@@ -276,7 +276,6 @@ class MainLayout(BoxLayout):
                 points = data.get('track_points', [])
                 if not points:
                     self.status_text = "Keine Track-Punkte gefunden."
-                    self.show_popup("Fehler", "Keine Track-Punkte gefunden.")
                     return
 
                 self.reset_tracking()
@@ -297,6 +296,9 @@ class MainLayout(BoxLayout):
                 mapview.center_on(lat_end, lon_end)
                 self.draw_track_line()
 
+                self.ride_duration = data.get("ride_duration_sec", 0)
+                self.ids.duration_label.text = self.format_duration(self.ride_duration)
+
                 self.status_text = f"Track geladen: {filepath}"
                 self.track_saved = True
                 self.show_popup("Erfolg", f"Track geladen:\n{filepath}")
@@ -310,13 +312,33 @@ class MainLayout(BoxLayout):
         lon = 13.4050 + random.uniform(-0.001, 0.001)
         self.on_location(lat=lat, lon=lon)
 
+    def start_timer(self):
+        if self.timer_event:
+            self.timer_event.cancel()
+        self.timer_event = Clock.schedule_interval(self.update_timer, 1)
+
+    def stop_timer(self):
+        if self.timer_event:
+            self.timer_event.cancel()
+            self.timer_event = None
+
+    def update_timer(self, dt):
+        self.ride_duration += 1
+        self.ids.duration_label.text = self.format_duration(self.ride_duration)
+
+    def format_duration(self, seconds):
+        h = seconds // 3600
+        m = (seconds % 3600) // 60
+        s = seconds % 60
+        return f"Fahrtdauer: {h:02d}:{m:02d}:{s:02d}"
+
     def show_popup(self, title, message):
         popup_content = BoxLayout(orientation='vertical', padding=10, spacing=10)
-        popup_label = Button(text=message, size_hint_y=None, height=100, background_color=(0,0,0,0), disabled=True)
-        btn_close = Button(text="Schließen", size_hint_y=None, height='40dp')
-        popup_content.add_widget(popup_label)
+        popup_content.add_widget(Label(text=message))
+        btn_close = Button(text='OK', size_hint_y=None, height='40dp')
         popup_content.add_widget(btn_close)
-        popup = Popup(title=title, content=popup_content, size_hint=(0.7, 0.4))
+
+        popup = Popup(title=title, content=popup_content, size_hint=(0.8, 0.4))
         btn_close.bind(on_release=popup.dismiss)
         popup.open()
 

@@ -18,19 +18,19 @@
             text: "Start"
             on_release: root.start_tracking()
             id: start_btn
-            disabled: root.gps_started or root.mock_active
+            disabled: root.gps_started or root.mock_event is not None
 
         Button:
             text: root.ids.pause_resume_btn.text if root.ids.pause_resume_btn else "Pause"
             on_release: root.pause_or_resume_tracking()
             id: pause_resume_btn
-            disabled: not (root.gps_started or root.mock_active) and len(root.track_points) == 0
+            disabled: not (root.gps_started or root.mock_event is not None) and len(root.track_points) == 0
 
         Button:
             text: "Stop"
             on_release: root.stop_tracking()
             id: stop_btn
-            disabled: not (root.gps_started or root.mock_active)
+            disabled: not (root.gps_started or root.mock_event is not None)
 
         Button:
             text: "Speichern"
@@ -61,12 +61,17 @@
         Label:
             id: distance_label
             text: "Distanz: 0.0 km"
-            size_hint_x: 0.3
+            size_hint_x: 0.25
 
         Label:
             id: speed_label
             text: "Geschwindigkeit: 0.0 km/h"
-            size_hint_x: 0.3
+            size_hint_x: 0.25
+
+    Label:
+        id: duration_label
+        text: "Fahrtdauer: 00:00:00"
+        size_hint_y: 0.05
 
     Label:
         id: status_label

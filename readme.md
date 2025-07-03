@@ -64,9 +64,7 @@ Aufbau des Codes
 
     UI-Komponenten: Buttons, Labels, Popups für Benutzerinteraktionen.
 
-Lizenz
 
-[Hier ggf. deine Lizenz angeben]
 Bike Tracker App
 Description
 

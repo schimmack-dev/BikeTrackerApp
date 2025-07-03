@@ -1,84 +1,73 @@
 <MainLayout>:
     orientation: "vertical"
-    padding: dp(20)
-    spacing: dp(15)
-    canvas.before:
-        Color:
-            rgba: 0.95, 0.95, 0.95, 1
-        Rectangle:
-            pos: self.pos
-            size: self.size
-
-    BoxLayout:
-        orientation: "vertical"
-        padding: dp(15)
-        spacing: dp(10)
-        size_hint_y: None
-        height: dp(160)
-        canvas.before:
-            Color:
-                rgba: 1, 1, 1, 1
-            RoundedRectangle:
-                pos: self.pos
-                size: self.size
-                radius: [10]
-
-        Label:
-            id: status_label
-            text: "GPS-Daten: Nicht gestartet"
-            font_size: '18sp'
-            color: 0, 0, 0, 1
-
-        Label:
-            id: coords_label
-            text: "Latitude: - , Longitude: -"
-            font_size: '16sp'
-            color: 0.3, 0.3, 0.3, 1
-
-        Label:
-            id: distance_label
-            text: "Distanz: 0.0 km"
-            font_size: '16sp'
-            color: 0.3, 0.3, 0.3, 1
-
-        Label:
-            id: speed_label
-            text: "Geschwindigkeit: 0.0 km/h"
-            font_size: '16sp'
-            color: 0.3, 0.3, 0.3, 1
+    padding: 10
+    spacing: 10
 
     MapView:
         id: mapview
         lat: 52.5200
         lon: 13.4050
         zoom: 12
+        size_hint_y: 0.7
 
     BoxLayout:
+        size_hint_y: 0.3
         orientation: "vertical"
-        size_hint_y: None
-        height: dp(160)
-        spacing: dp(10)
+        spacing: 10
 
-        Button:
-            text: "▶ Start"
-            background_color: 0, 0.8, 0, 1
-            font_size: '18sp'
-            on_press: root.start_gps()
+        BoxLayout:
+            spacing: 10
 
-        Button:
-            text: "■ Stop"
-            background_color: 0.8, 0, 0, 1
-            font_size: '18sp'
-            on_press: root.stop_gps()
+            Button:
+                text: "▶ Start"
+                on_release: root.start_tracking()
 
-        Button:
-            text: "↻ Zurücksetzen"
-            background_color: 0.9, 0.6, 0, 1
-            font_size: '18sp'
-            on_press: root.reset_tracking()
+            Button:
+                id: pause_resume_btn
+                text: "⏸ Pause"
+                disabled: True
+                on_release: root.pause_or_resume_tracking()
 
-        Button:
-            text: "💾 Speichern"
-            background_color: 0.2, 0.6, 1, 1
-            font_size: '18sp'
-            on_press: root.save_track()
+            Button:
+                id: stop_btn
+                text: "■ Stop"
+                disabled: True
+                on_release: root.stop_tracking()
+
+            Button:
+                id: reset_btn
+                text: "↺ Reset"
+                disabled: True
+                on_release: root.reset_tracking()
+
+        BoxLayout:
+            spacing: 10
+
+            Button:
+                text: "💾 Speichern"
+                on_release: root.save_track()
+
+            Button:
+                text: "📂 Laden"
+                on_release: root.open_filechooser()
+
+        BoxLayout:
+            spacing: 10
+
+            Label:
+                id: status_label
+                text: root.status_text
+                size_hint_x: 1
+                color: 1, 0, 0, 1
+
+            Label:
+                id: distance_label
+                text: "Distanz: 0.0 km"
+
+            Label:
+                id: speed_label
+                text: "Geschwindigkeit: 0.0 km/h"
+
+            Label:
+                id: coords_label
+                text: "Latitude: - , Longitude: -"

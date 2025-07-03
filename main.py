@@ -246,8 +246,8 @@ class MainLayout(BoxLayout):
         content.add_widget(btn_layout)
 
         self.popup = Popup(title='Track Datei wählen',
-                           content=content,
-                           size_hint=(0.9, 0.9))
+                        content=content,
+                        size_hint=(0.9, 0.9))
 
         btn_load.bind(on_release=self.load_from_filechooser)
         btn_cancel.bind(on_release=self.popup.dismiss)

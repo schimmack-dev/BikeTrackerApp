@@ -1,4 +1,5 @@
-Bike Tracker App
+Bike Tracker App mit Python und Kivy
+
 Beschreibung
 
 Die Bike Tracker App ist eine Fahrrad-Tracking-Anwendung, die mit Kivy entwickelt wurde. Sie ermöglicht es, während einer Fahrradtour GPS-Positionen zu erfassen, die gefahrene Strecke auf einer Karte anzuzeigen und wichtige Fahrdaten wie zurückgelegte Distanz, Geschwindigkeit und Fahrtdauer in Echtzeit zu verfolgen.
@@ -65,7 +66,8 @@ Aufbau des Codes
     UI-Komponenten: Buttons, Labels, Popups für Benutzerinteraktionen.
 
 
-Bike Tracker App
+Bike Tracker App with Python and Kivy
+
 Description
 
 The Bike Tracker App is a bicycle tracking application developed using Kivy. It enables recording GPS positions during a bike ride, displaying the traveled route on a map, and tracking key ride data such as distance, speed, and duration in real time.
